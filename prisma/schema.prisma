@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model FirmProfile {
+  id                String      @id @default(cuid())
+  name              String
+  description       String
+  serviceAreas      String[]
+  icpIndustries     String[]
+  icpCompanySizeMin Int
+  icpCompanySizeMax Int
+  icpGeographies    String[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  caseStudies       CaseStudy[]
+  campaigns         Campaign[]
+}
+
+model CaseStudy {
+  id               String      @id @default(cuid())
+  firmProfileId    String
+  firmProfile      FirmProfile @relation(fields: [firmProfileId], references: [id], onDelete: Cascade)
+  title            String
+  industry         String
+  problemStatement String
+  outcome          String
+  metrics          String
+  testimonial      String?
+  createdAt        DateTime    @default(now())
+}
+
+model Company {
+  id                String            @id @default(cuid())
+  apolloId          String            @unique
+  name              String
+  domain            String?
+  industry          String?
+  employeeCount     Int?
+  estimatedRevenue  String?
+  location          String?
+  description       String?
+  linkedinUrl       String?
+  recentNews        String?
+  createdAt         DateTime          @default(now())
+  contacts          Contact[]
+  campaignCompanies CampaignCompany[]
+  drafts            Draft[]
+}
+
+model Contact {
+  id          String    @id @default(cuid())
+  apolloId    String    @unique
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  firstName   String
+  lastName    String
+  title       String?
+  email       String?
+  linkedinUrl String?
+  seniority   String?
+  createdAt   DateTime  @default(now())
+  drafts      Draft[]
+}
+
+model Campaign {
+  id            String            @id @default(cuid())
+  firmProfileId String
+  firmProfile   FirmProfile       @relation(fields: [firmProfileId], references: [id], onDelete: Cascade)
+  name          String
+  status        CampaignStatus    @default(DRAFT)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  companies     CampaignCompany[]
+  drafts        Draft[]
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+}
+
+model CampaignCompany {
+  id           String                @id @default(cuid())
+  campaignId   String
+  campaign     Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  companyId    String
+  company      Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  serviceAngle String?
+  status       CampaignCompanyStatus @default(SELECTED)
+
+  @@unique([campaignId, companyId])
+}
+
+enum CampaignCompanyStatus {
+  SELECTED
+  SKIPPED
+}
+
+model Draft {
+  id         String      @id @default(cuid())
+  campaignId String
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId  String
+  contact    Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  type       DraftType
+  subject    String?
+  body       String
+  status     DraftStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+}
+
+enum DraftType {
+  EMAIL
+  LINKEDIN
+}
+
+enum DraftStatus {
+  PENDING
+  APPROVED
+  EDITED
+}
